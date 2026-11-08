@@ -26,13 +26,10 @@ body{margin:0;background:#F6F5F1;color:#1C1B19;font-family:-apple-system,'Hiragi
   function getCfg() { try { return JSON.parse(localStorage.getItem(K) || 'null'); } catch (e) { return null; } }
   function setCfg(v) { try { localStorage.setItem(K, JSON.stringify(v)); } catch (e) {} }
 
-  // 初回設定用リンク（#u=お店のアドレス&k=合言葉）で開いたら覚える
-  var h = location.hash.slice(1);
-  if (h) {
-    var p = new URLSearchParams(h);
-    if (p.get('u') && p.get('k')) { setCfg({ u: p.get('u'), k: p.get('k') }); }
-    history.replaceState(null, '', location.pathname);
-  }
+  // 設定入りのリンク（#u=お店のアドレス&k=合言葉）で開いたら覚える。
+  // リンクはそのまま残すので「ホーム画面に追加」しても入力なしで開ける。
+  var p = new URLSearchParams(location.hash.slice(1));
+  if (p.get('u') && p.get('k')) { setCfg({ u: p.get('u'), k: p.get('k') }); }
 
   function call(fn, args) {
     var c = getCfg();
@@ -62,7 +59,7 @@ body{margin:0;background:#F6F5F1;color:#1C1B19;font-family:-apple-system,'Hiragi
     });
   }
   window.google = { script: { run: runner(null, null) } };
-  window.shiireLogout = function () { localStorage.removeItem(K); location.reload(); };
+  window.shiireLogout = function () { localStorage.removeItem(K); location.href = location.pathname; };
 
   function setup(msg) {
     var b = document.getElementById('boot');
