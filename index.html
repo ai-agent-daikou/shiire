@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="仕入れくらべ">
+<meta name="theme-color" content="#0F766E">
+<title>仕入れくらべ</title>
+<style>
+body{margin:0;background:#F6F5F1;color:#1C1B19;font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif}
+#boot{padding:28px 20px;max-width:480px;margin:0 auto}
+#boot h1{font-size:22px;margin:0 0 6px}
+#boot p{color:#5F5B53;font-size:14px;line-height:1.6}
+#boot label{display:block;font-size:13px;color:#5F5B53;margin-top:14px}
+#boot input{width:100%;box-sizing:border-box;font-size:16px;padding:12px;border:1px solid #D6D2C7;border-radius:10px;margin-top:4px;background:#fff}
+#boot button{width:100%;margin-top:18px;padding:14px;border:none;border-radius:14px;background:#0F766E;color:#fff;font-size:16px;font-weight:700}
+.spin{color:#5F5B53;font-size:14px}
+</style>
+</head>
+<body>
+<div id="boot"><div class="spin">読み込み中…</div></div>
+<script>
+(function () {
+  var K = 'shiire_cfg';
+  function getCfg() { try { return JSON.parse(localStorage.getItem(K) || 'null'); } catch (e) { return null; } }
+  function setCfg(v) { try { localStorage.setItem(K, JSON.stringify(v)); } catch (e) {} }
+
+  // 初回設定用リンク（#u=お店のアドレス&k=合言葉）で開いたら覚える
+  var h = location.hash.slice(1);
+  if (h) {
+    var p = new URLSearchParams(h);
+    if (p.get('u') && p.get('k')) { setCfg({ u: p.get('u'), k: p.get('k') }); }
+    history.replaceState(null, '', location.pathname);
+  }
+
+  function call(fn, args) {
+    var c = getCfg();
+    return fetch(c.u, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ k: c.k, fn: fn, args: args || [] })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.e);
+      return j.r;
+    });
+  }
+
+  // 画面側の google.script.run をそのまま使えるようにする
+  function runner(ok, ng) {
+    return new Proxy({}, {
+      get: function (_, name) {
+        if (name === 'withSuccessHandler') return function (f) { return runner(f, ng); };
+        if (name === 'withFailureHandler') return function (f) { return runner(ok, f); };
+        if (name === 'withUserObject') return function () { return runner(ok, ng); };
+        return function () {
+          var a = Array.prototype.slice.call(arguments);
+          call(name, a).then(function (r) { if (ok) ok(r); })
+            .catch(function (e) { if (ng) ng(e); else alert(e.message); });
+        };
+      }
+    });
+  }
+  window.google = { script: { run: runner(null, null) } };
+  window.shiireLogout = function () { localStorage.removeItem(K); location.reload(); };
+
+  function setup(msg) {
+    var b = document.getElementById('boot');
+    b.innerHTML = '<h1>仕入れくらべ</h1><p>' + (msg || '最初に1回だけ、お店のアドレスと合言葉を入れてください。') + '</p>' +
+      '<label>お店のアドレス<input id="su" autocomplete="off"></label>' +
+      '<label>合言葉<input id="sk" autocomplete="off"></label>' +
+      '<button id="sgo">はじめる</button>';
+    document.getElementById('sgo').onclick = function () {
+      setCfg({ u: document.getElementById('su').value.trim(), k: document.getElementById('sk').value.trim() });
+      location.reload();
+    };
+  }
+
+  if (!getCfg()) { setup(); return; }
+  call('ui').then(function (page) {
+    document.open(); document.write(page); document.close();
+  }).catch(function (e) {
+    setup('つながりませんでした（' + e.message + '）。アドレスと合言葉を確かめてください。');
+  });
+})();
+</script>
+</body>
+</html>
