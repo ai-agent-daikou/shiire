@@ -76,7 +76,7 @@ body{margin:0;background:#F6F5F1;color:#1C1B19;font-family:-apple-system,'Hiragi
   }
 
   if (!getCfg()) { setup(); return; }
-  call('ui').then(function (page) {
+  call('ui', [(function () { try { return localStorage.getItem('shiire_theme') || ''; } catch (e) { return ''; } })()]).then(function (page) {
     document.open(); document.write(page); document.close();
   }).catch(function (e) {
     setup('つながりませんでした（' + e.message + '）。アドレスと合言葉を確かめてください。');
