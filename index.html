@@ -30,6 +30,8 @@ body{margin:0;background:#F6F5F1;color:#1C1B19;font-family:-apple-system,'Hiragi
   // リンクはそのまま残すので「ホーム画面に追加」しても入力なしで開ける。
   var p = new URLSearchParams(location.hash.slice(1));
   if (p.get('u') && p.get('k')) { setCfg({ u: p.get('u'), k: p.get('k') }); }
+  // 手入力で設定した人も、URLに設定を付けておく（ホーム画面に追加しても開けるように）
+  else { var c0 = getCfg(); if (c0 && c0.u && c0.k) { try { history.replaceState(null, '', location.pathname + location.search + '#u=' + encodeURIComponent(c0.u) + '&k=' + encodeURIComponent(c0.k)); } catch (e) {} } }
 
   function call(fn, args) {
     var c = getCfg();
